@@ -26,15 +26,16 @@ app.use("/", routes);
 const PORT = process.env.PORT || 3000;
 
 await connectDB();
-await fetchTweets(process.env.TWITTER_KEYWORD);
+//await fetchTweets(process.env.TWITTER_KEYWORD);
 
-let fetching = false;
+/*let fetching = false;
 setInterval(async () => {
     if(fetching) return;
     fetching = true;
     await fetchTweets(process.env.TWITTER_KEYWORD);
     fetching = false;
-}, 12 * 60 *60 * 1000); // every 8 hours
+}, 12 * 60 *60 * 1000);
+*/
 
 app.listen(PORT, () =>
     console.log(`Server is running on http://localhost:${PORT}`)

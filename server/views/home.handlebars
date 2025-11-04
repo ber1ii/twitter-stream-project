@@ -18,6 +18,21 @@
     if (!button) return;
     if(!buttonRefresh) return;
 
+    async function renderTweets() {
+      const res = await fetch("/api/tweets");
+      const tweets = await res.json();
+
+      container.innerHTML = tweets
+        .map(
+          (t) => `
+            <div class="tweet">
+              <p><strong>${t.user || "Anonymous"}:</strong> ${t.text}</p>
+              <small>${new Date(t.createdAt).toLocaleString()}</small>
+            </div>`
+        )
+        .join("");
+    }
+
     button.addEventListener("click", async () => {
       try {
         const res = await fetch("/api/tweets");

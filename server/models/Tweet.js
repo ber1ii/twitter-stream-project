@@ -2,9 +2,10 @@ import mongoose from "mongoose";
 
 const tweetSchema = new mongoose.Schema(
     {
-        test: { type: String, required: true},
+        text: { type: String, required: true},
         user: { type: String },
         tweetId: {type: String, unique: true  },
+        createdAt: { type: Date, default: Date.now, expires: "7d" },
     },
     { timestamps: true }
 );
