@@ -10,7 +10,7 @@ const twitterClient = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
 export const fetchTweets = async (keyword = "javascript") => {
     try {
         if(process.env.MOCK_TWITTER === "true") {
-            return await generateMockTweets(5);
+            return await generateMockTweets(10);
         }
 
         const response = await twitterClient.v2.search(keyword, {
