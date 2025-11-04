@@ -1,0 +1,68 @@
+<section class="tweets-section">
+    <h2>Latest Tweets</h2>
+
+    <div id="tweets-container">
+        <p>Waiting for tweets...</p>
+    </div>
+
+    <button id="load-tweets-btn">Load Tweets</button>
+    <button id="refresh-tweets-btn">Refresh feed</button>
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const button = document.getElementById("load-tweets-btn");
+    const buttonRefresh = document.getElementById("refresh-tweets-btn");
+    const container = document.getElementById("tweets-container");
+
+    if (!button) return;
+    if(!buttonRefresh) return;
+
+    button.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/tweets");
+        const tweets = await res.json();
+
+        if (!tweets.length) {
+          container.innerHTML = "<p>No tweets available.</p>";
+          return;
+        }
+
+        container.innerHTML = tweets
+          .map(
+            (t) => `
+              <div class="tweet">
+                <p><strong>${t.user || "Anonymous"}:</strong>
+                ${t.test || t.text}</p>
+                <small>${new Date(t.createdAt).toLocaleString()}</small>
+              </div>
+            `
+          )
+          .join("");
+      } catch (err) {
+        console.error("Error fetching tweets:", err);
+        container.innerHTML = "<p>Failed to load tweets.</p>";
+      }
+    });
+
+    buttonRefresh.addEventListener("click", async () => {
+      try {
+        buttonRefresh.disabled = true;
+        const resp = await fetch("/api/refresh-tweets", { method: "POST" });
+        
+        if(resp.ok) {
+          alert("Tweets refreshed successfully!");
+        } else {
+          alert("Failed to refresh tweets.");
+        }
+
+        setTimeout(() => {
+          buttonRefresh.disabled = false;
+        }, 3 * 60 * 1000); // 3 minutes cooldown
+      } catch(err) {
+        console.error("Refresh failed:", err);
+        alert("Error: Could not refresh tweets.");
+      }
+    })
+  });
+</script>
