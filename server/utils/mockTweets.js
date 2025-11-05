@@ -1,4 +1,6 @@
 import Tweet from "../models/Tweet.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "../../.env" });
 
 const users = [
     "beri",
@@ -54,16 +56,26 @@ const endings = [
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-export const generateMockTweets = async (count = 10) => {
-    const tweets = Array.from({ length: count }).map((_, i) => ({
-        text: `I'm ${pick(verbs)} something related to ${pick(topics)} — ${pick(
-      endings
-    )}`,
-    user: pick(users),
-    tweetId: `mock-${Date.now()}-${i}`,
-    }));
+export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_SIZE ?? 10)) => {
+    const timeWindow = Number(process.env.MOCK_TIME_WINDOW_MINUTES ?? 5) * 60 * 1000; // 5min
 
-    const MAX_TWEETS = 300;
+    const latest = await Tweet.findOne().sort({ createdAt: -1 }).lean();
+    const baseTime = latest ? new Date(latest.createdAt).getTime() : Date.now();
+
+    const tweets = Array.from({ length: count }).map((_, i) => {
+        const randomOffset = Math.floor(Math.random() * timeWindow);
+        const createdAt = new Date(baseTime + randomOffset + i * 1000); // unique timestamp
+
+        return {
+            text: `I'm ${pick(verbs)} something related to ${pick(topics)} - ${pick(endings)}`,
+            user: pick(users),
+            tweetId: `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            createdAt,
+            updatedAt: createdAt,
+        };
+    });
+
+    const MAX_TWEETS = Number(process.env.MOCK_MAX_TWEETS ?? 300);
     const total = await Tweet.countDocuments();
     const excess = total + count - MAX_TWEETS;
 

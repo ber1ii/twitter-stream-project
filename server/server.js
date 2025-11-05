@@ -38,16 +38,23 @@ setInterval(async () => {
 }, 12 * 60 *60 * 1000);
 */
 
-// Auto generate mock tweets every 2 minutes for testing
+// Updatead mock interval to 20seconds for "real-time" feel
 if(process.env.MOCK_TWITTER === "true") {
-    await generateMockTweets(10);
+    const initialBatch = Number(process.env.MOCK_BATCH_SIZE ?? 10);
+    const intervalSeconds = Number(process.env.MOCK_INTERVAL_SECONDS ?? 20);
+    
+    console.log(`Seeding ${initialBatch} mock tweets...`);
+    await generateMockTweets(initialBatch);
+
+    console.log(`Auto-inserting new mock tweets every ${intervalSeconds} seconds...`);
     setInterval(async () => {
         try {
-            await generateMockTweets(3 + Math.floor(Math.random())* 3); //Adds 3-5 random tweets
+            const count = 3 + Math.floor(Math.random() * 3); // 3 to 5 tweets
+            await generateMockTweets(count);
         } catch(err) {
             console.error("Mock insertion error:", err);
         }
-    }, 2 * 60 * 1000); // 2 min
+    }, intervalSeconds * 1000); 
 }
 
 app.listen(PORT, () =>

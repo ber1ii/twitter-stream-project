@@ -15,7 +15,17 @@ router.get('/', async (req, res) => {
 
 router.get("/api/tweets", async (req, res) => {
     try {
-        const tweets = await Tweet.find().sort({ createdAt: -1 }).limit(10);
+        const { skip = 0, after } = req.query;
+        const limit = 10;
+
+        const findOptions = after ? { _id: { $gt: after } } : {};
+
+        const tweets = await Tweet.find(findOptions)
+            .sort({ createdAt: -1 })
+            .skip(parseInt(skip))
+            .limit(limit)
+            .lean();
+
         res.json(tweets);
     } catch (err) {
         console.error("Error fetching tweets: ", err);
