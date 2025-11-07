@@ -40,21 +40,32 @@ setInterval(async () => {
 
 // Updatead mock interval to 20seconds for "real-time" feel
 if(process.env.MOCK_TWITTER === "true") {
-    const initialBatch = Number(process.env.MOCK_BATCH_SIZE ?? 10);
-    const intervalSeconds = Number(process.env.MOCK_INTERVAL_SECONDS ?? 20);
+    const preloadMinutes = Number(process.env.MOCK_PRELOAD_MINUTES ?? 30);
+    const avgPostsPerMinute = Math.floor(Math.random() * 5) + 4; // 4-8 posts per minute
+    const preloadCount = preloadMinutes * avgPostsPerMinute;
     
-    console.log(`Seeding ${initialBatch} mock tweets...`);
-    await generateMockTweets(initialBatch);
+    console.log(`Preloading tweets for last ${preloadMinutes} minutes...`);
+    await generateMockTweets(preloadCount, true); 
 
-    console.log(`Auto-inserting new mock tweets every ${intervalSeconds} seconds...`);
-    setInterval(async () => {
-        try {
-            const count = 3 + Math.floor(Math.random() * 3); // 3 to 5 tweets
-            await generateMockTweets(count);
-        } catch(err) {
-            console.error("Mock insertion error:", err);
-        }
-    }, intervalSeconds * 1000); 
+    const minInterval = Number(process.env.MOCK_MIN_INTERVAL_SECONDS ?? 10);
+    const maxInterval = Number(process.env.MOCK_MAX_INTERVAL_SECONDS ?? 30);
+    
+    const scheduleNextBatch = async () => {
+        const wait = Math.floor(Math.random() *  (maxInterval - minInterval + 1)) + minInterval;
+        console.log(`Next mock batch in ${wait}s`);
+        
+        setTimeout(async () => {
+            try {
+                const count = 3 + Math.floor(Math.random() * 3);
+                await generateMockTweets(count, false);
+            } catch(err) {
+                console.error("Mock insertion error:", err);
+            }
+            await scheduleNextBatch();
+        }, wait * 1000);
+    };
+
+    await scheduleNextBatch();
 }
 
 app.listen(PORT, () =>

@@ -28,8 +28,10 @@
 <script defer>
   document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("tweets-container");
-    let skip = 0;
+    let oldestId = null;
     let lastId = null;
+    const renderedIds = new Set();
+    let isLoading = false;
 
     // Redner helper
     const renderTweet = (t) => `
@@ -38,13 +40,19 @@
         <small>${new Date(t.createdAt).toLocaleTimeString()}</small>
       </div>`;
 
-    async function loadTweets(initial = false) {
+    async function loadTweets(before = null, initial = false) {
+      if(isLoading) return;
+      isLoading = true;
       try {
-        const res = await fetch(`/api/tweets?skip=${skip}`);
+        const url = before ? `/api/tweets?before=${before}` : `/api/tweets`;
+        const res = await fetch(url);
         const tweets = await res.json();
         if(!tweets.length) return;
 
-        const html = tweets.map(renderTweet).join("");
+        const newTweets = tweets.filter((t) => !renderedIds.has(t._id));
+        newTweets.forEach((t) => renderedIds.add(t._id));
+
+        const html = newTweets.map(renderTweet).join("");
         if(initial) container.innerHTML = html;
         else container.insertAdjacentHTML("beforeend", html);
 
@@ -55,10 +63,14 @@
             .forEach((el) => el.classList.add("show"));
         });
 
-        skip += tweets.length;
-        lastId = tweets[0]._id;
+        if(newTweets.length) {
+          lastId = lastId || newTweets[0]._id;
+          oldestId = newTweets[newTweets.length - 1]._id;
+        }
       } catch(err) {
         console.error("Error loading tweets:", err);
+      } finally {
+        isLoading = false;
       }
     }
 
@@ -71,22 +83,33 @@
 
         if(!tweets.length) return scheduleNextCheck();
 
-        const html = tweets.map(renderTweet).join("");
-        container.insertAdjacentHTML("afterbegin", html);
-        requestAnimationFrame(() => {
-          document
-            .querySelectorAll(".tweet.new")
-            .forEach((el) => el.classList.add("show"));
-        });
+        const newTweets = tweets.filter((t) => !renderedIds.has(t._id));
+        newTweets.forEach((t) => renderedIds.add(t._id));
 
-        if (tweets.length)
-          console.info(`Fetched ${tweets.length} new tweets at ${new Date().toLocaleTimeString()}`);
+        const html = newTweets.map(renderTweet).join("");
+        if (newTweets.length) {
+          container.insertAdjacentHTML("afterbegin", html);
+          requestAnimationFrame(() =>
+            document
+              .querySelectorAll(".tweet.new")
+              .forEach((el) => el.classList.add("show"))
+          );
+          console.info(
+            `Fetched ${newTweets.length} new tweets at ${new Date().toLocaleTimeString()}`
+          );
+          lastId = newTweets[0]._id;
+        }
 
-        lastId = tweets[0]._id;
         scheduleNextCheck();
       } catch(err) {
         console.error("Error checking for new tweets:", err);
       }
+    }
+
+    async function loadOlderTweets() {
+      if(!oldestId || isLoading) return;
+      console.log("Fetching older tweets...");
+      await loadTweets(oldestId, false);
     }
 
     function scheduleNextCheck() {
@@ -94,20 +117,16 @@
       setTimeout(checkForNewTweets, delay);
     }
 
-    let isLoading = false;
-
     window.addEventListener("scroll", async () => {
       if(
         !isLoading &&
         window.innerHeight + window.scrollY >= 
         document.body.offsetHeight - 200
       ) {
-        isLoading = true;
-        await loadTweets(false);
-        isLoading = false;
+        await loadOlderTweets();
       }
     });
 
-    loadTweets(true).then(scheduleNextCheck);
+    loadTweets(null, true).then(scheduleNextCheck);
   });
 </script>

@@ -15,14 +15,15 @@ router.get('/', async (req, res) => {
 
 router.get("/api/tweets", async (req, res) => {
     try {
-        const { skip = 0, after } = req.query;
+        const { skip = 0, after, before } = req.query;
         const limit = 10;
+        let query = {};
 
-        const findOptions = after ? { _id: { $gt: after } } : {};
+        if(after) query = { _id: { $gt: after } };
+        else if(before) query = { _id: { $lt: before } };
 
-        const tweets = await Tweet.find(findOptions)
+        const tweets = await Tweet.find(query)
             .sort({ createdAt: -1 })
-            .skip(parseInt(skip))
             .limit(limit)
             .lean();
 
