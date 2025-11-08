@@ -25,8 +25,11 @@ if (isProduction) {
     const clientBuildPath = path.join(__dirname, '../client/dist');
     app.use(express.static(clientBuildPath));
     
-    // Catch-all route for SPA (must be AFTER /api routes)
-    app.get('/*', (req, res) => {
+    // SPA fallback - serve index.html for all non-API routes
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
         res.sendFile(path.join(clientBuildPath, 'index.html'));
     });
 }
