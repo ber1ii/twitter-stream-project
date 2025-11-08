@@ -1,10 +1,21 @@
 import Tweet from "../models/Tweet.js";
 import dotenv from "dotenv";
-import { users, topics, verbs, endings } from "../data/mockData.js";
+import { users, topics, verbs, endings, hashtags, emojis } from "../data/mockData.js";
+import { broadcastNewTweets } from "../routes.js";
+
 dotenv.config({ path: "../../.env" });
+
 let isTrimming = false;
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const maybe = (chance = 0.5) => Math.random() < chance;
+
+const generateTweetText = () => {
+    const base = `I'm ${pick(verbs)} something related to ${pick(topics)} - ${pick(endings)}`;
+    const withHashtag = maybe(0.3) ? `${base} ${pick(hashtags)}` : base;
+    const withEmoji = maybe(0.4) ? `${withHashtag} ${pick(emojis)}` : withHashtag;
+    return withEmoji;
+}
 
 export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_SIZE ?? 10), preload = false) => {
     const tweets = [];
@@ -18,9 +29,9 @@ export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_S
             const createdAt = new Date(Date.now() - offset);
 
             tweets.push({
-                text: `I'm ${pick(verbs)} something related to ${pick(topics)} - ${pick(endings)}`,
+                text: generateTweetText(),
                 user: pick(users),
-                tweetId: `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                tweetId: `mock-${Date.now()}-${Math.random().toString(16).slice(2)}-${i}`,
                 createdAt,
                 updatedAt: createdAt,
             });
@@ -32,7 +43,7 @@ export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_S
 
         const current = Date.now();
         // leave a small gap to avoid future timestamps
-        const safetyWindow = 10 * 1000;
+        const safetyWindow = 5 * 1000;
 
         for(let i = 0; i < count; i++) {
             const upperBound = current - Math.random() * safetyWindow;
@@ -41,9 +52,9 @@ export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_S
             );
 
             tweets.push({
-                text: `I'm ${pick(verbs)} something related to ${pick(topics)} - ${pick(endings)}`,
+                text: generateTweetText(),
                 user: pick(users),
-                tweetId: `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                tweetId: `mock-${Date.now()}-${Math.random().toString(16).slice(2)}-${i}`,
                 createdAt,
                 updatedAt: createdAt,
             });
@@ -51,6 +62,11 @@ export const generateMockTweets = async (count = Number(process.env.MOCK_BATCH_S
     }
 
     await Tweet.insertMany(tweets);
+
+    if (!preload) {
+        console.log(`📤 Broadcasting ${tweets.length} new tweets to clients...`);
+        broadcastNewTweets(tweets.length);
+    }
 
     const MAX_TWEETS = Number(process.env.MOCK_MAX_TWEETS ?? 300);
     const total = await Tweet.countDocuments();

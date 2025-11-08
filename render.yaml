@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: mock-twitter
+    runtime: node
+    plan: free
+    buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: TWITTER_KEYWORD
+        value: javascript
+      - key: MOCK_TWITTER
+        value: true
+      - key: MOCK_MAX_TWEETS
+        value: 300
+      - key: MOCK_BATCH_SIZE
+        value: 10
+      - key: MOCK_PRELOAD_MINUTES
+        value: 30
+      - key: MOCK_MIN_INTERVAL_SECONDS
+        value: 10
+      - key: MOCK_MAX_INTERVAL_SECONDS
+        value: 30
