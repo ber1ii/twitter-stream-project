@@ -26,7 +26,7 @@ if (isProduction) {
     app.use(express.static(clientBuildPath));
     
     // Catch-all route for SPA (must be AFTER /api routes)
-    app.get('*', (req, res) => {
+    app.get('/*', (req, res) => {
         res.sendFile(path.join(clientBuildPath, 'index.html'));
     });
 }
